@@ -29,11 +29,14 @@ import java.util.*
 
 class MainActivity : ComponentActivity() {
     private lateinit var bluetoothAdapter: BluetoothAdapter
+    private lateinit var advertiser: BluetoothLeAdvertiser
     private lateinit var scanner: BluetoothLeScanner
+    private lateinit var advertiseCallback: AdvertiseCallback
     private lateinit var scanCallback: ScanCallback
     private var isBluetoothActive = false
     private val requestEnableBt = 1
     private lateinit var webView: WebView
+    private val appServiceUuid = UUID.fromString("0000180F-0000-1000-8000-00805F9B34FB")
 
     private val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         arrayOf(
@@ -41,6 +44,7 @@ class MainActivity : ComponentActivity() {
             Manifest.permission.BLUETOOTH_ADMIN,
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.BLUETOOTH_SCAN,
+            Manifest.permission.BLUETOOTH_ADVERTISE,
             Manifest.permission.BLUETOOTH_CONNECT
         )
     } else {
@@ -91,6 +95,7 @@ class MainActivity : ComponentActivity() {
             requestBluetooth.launch(enableBtIntent)
         } else {
             requestMultiplePermissions.launch(permissions)
+            advertiser = bluetoothAdapter.bluetoothLeAdvertiser
             scanner = bluetoothAdapter.bluetoothLeScanner
         }
     }
@@ -117,9 +122,56 @@ class MainActivity : ComponentActivity() {
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == Activity.RESULT_OK) {
                 requestMultiplePermissions.launch(permissions)
+                advertiser = bluetoothAdapter.bluetoothLeAdvertiser
                 scanner = bluetoothAdapter.bluetoothLeScanner
             }
         }
+
+    private fun startAdvertising() {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_ADVERTISE) != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.BLUETOOTH_ADVERTISE), requestEnableBt)
+                    return
+                }
+            }
+
+            val advertiseSettings = AdvertiseSettings.Builder()
+                .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
+                .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
+                .setConnectable(false)
+                .build()
+
+            val advertiseData = AdvertiseData.Builder()
+                .setIncludeDeviceName(true)
+                .addServiceUuid(ParcelUuid(appServiceUuid))
+                .build()
+
+            advertiseCallback = object : AdvertiseCallback() {
+                override fun onStartSuccess(settingsInEffect: AdvertiseSettings) {
+                    super.onStartSuccess(settingsInEffect)
+                    println("Advertising started successfully")
+                }
+
+                override fun onStartFailure(errorCode: Int) {
+                    super.onStartFailure(errorCode)
+                    println("Advertising failed with error code: $errorCode")
+                }
+            }
+
+            advertiser.startAdvertising(advertiseSettings, advertiseData, advertiseCallback)
+        } catch (e: SecurityException) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun stopAdvertising() {
+        try {
+            advertiser.stopAdvertising(advertiseCallback)
+        } catch (e: SecurityException) {
+            e.printStackTrace()
+        }
+    }
 
     private fun startScanning() {
         try {
@@ -132,6 +184,10 @@ class MainActivity : ComponentActivity() {
 
             val scanSettings = ScanSettings.Builder()
                 .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+                .build()
+
+            val scanFilter = ScanFilter.Builder()
+                .setServiceUuid(ParcelUuid(appServiceUuid))
                 .build()
 
             scanCallback = object : ScanCallback() {
@@ -159,7 +215,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            scanner.startScan(null, scanSettings, scanCallback)
+            scanner.startScan(listOf(scanFilter), scanSettings, scanCallback)
         } catch (e: SecurityException) {
             e.printStackTrace()
         }
@@ -178,6 +234,7 @@ class MainActivity : ComponentActivity() {
         fun startBluetooth() {
             if (!isBluetoothActive) {
                 isBluetoothActive = true
+                startAdvertising()
                 startScanning()
             }
         }
@@ -186,6 +243,7 @@ class MainActivity : ComponentActivity() {
         fun stopBluetooth() {
             if (isBluetoothActive) {
                 isBluetoothActive = false
+                stopAdvertising()
                 stopScanning()
             }
         }
@@ -219,6 +277,10 @@ class MainActivity : ComponentActivity() {
                                     context,
                                     Manifest.permission.BLUETOOTH_SCAN
                                 ) == PackageManager.PERMISSION_GRANTED &&
+                                        ContextCompat.checkSelfPermission(
+                                            context,
+                                            Manifest.permission.BLUETOOTH_ADVERTISE
+                                        ) == PackageManager.PERMISSION_GRANTED &&
                                         ContextCompat.checkSelfPermission(
                                             context,
                                             Manifest.permission.BLUETOOTH_CONNECT
