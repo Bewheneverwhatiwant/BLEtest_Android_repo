@@ -245,6 +245,9 @@ class MainActivity : ComponentActivity() {
                 isBluetoothActive = false
                 stopAdvertising()
                 stopScanning()
+                runOnUiThread {
+                    webView.evaluateJavascript("javascript:clearDetectedDevices()", null)
+                }
             }
         }
     }
