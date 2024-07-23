@@ -9,6 +9,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.*
 import android.webkit.JavascriptInterface
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
@@ -304,6 +305,7 @@ class MainActivity : ComponentActivity() {
                 AndroidView(factory = { context ->
                     WebView(context).apply {
                         settings.javaScriptEnabled = true
+                        settings.cacheMode = WebSettings.LOAD_NO_CACHE
                         webViewClient = WebViewClient()
                         loadUrl("https://bletest-repo.vercel.app/")
                         addJavascriptInterface(BluetoothInterface(), "BluetoothInterface")
