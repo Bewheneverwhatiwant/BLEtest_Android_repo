@@ -29,9 +29,7 @@ import java.util.*
 
 class MainActivity : ComponentActivity() {
     private lateinit var bluetoothAdapter: BluetoothAdapter
-    private lateinit var advertiser: BluetoothLeAdvertiser
     private lateinit var scanner: BluetoothLeScanner
-    private lateinit var advertiseCallback: AdvertiseCallback
     private lateinit var scanCallback: ScanCallback
     private var isBluetoothActive = false
     private val requestEnableBt = 1
@@ -43,7 +41,6 @@ class MainActivity : ComponentActivity() {
             Manifest.permission.BLUETOOTH_ADMIN,
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.BLUETOOTH_SCAN,
-            Manifest.permission.BLUETOOTH_ADVERTISE,
             Manifest.permission.BLUETOOTH_CONNECT
         )
     } else {
@@ -94,7 +91,6 @@ class MainActivity : ComponentActivity() {
             requestBluetooth.launch(enableBtIntent)
         } else {
             requestMultiplePermissions.launch(permissions)
-            advertiser = bluetoothAdapter.bluetoothLeAdvertiser
             scanner = bluetoothAdapter.bluetoothLeScanner
         }
     }
@@ -108,7 +104,6 @@ class MainActivity : ComponentActivity() {
         when (requestCode) {
             requestEnableBt -> {
                 if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
-                    // 권한이 부여된 경우 블루투스 설정을 다시 시도
                     setupBluetooth()
                 } else {
                     println("필요한 권한이 부여되지 않았습니다.")
@@ -118,61 +113,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-
     private val requestBluetooth =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == Activity.RESULT_OK) {
                 requestMultiplePermissions.launch(permissions)
-                advertiser = bluetoothAdapter.bluetoothLeAdvertiser
                 scanner = bluetoothAdapter.bluetoothLeScanner
             }
         }
-
-    private fun startAdvertising() {
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_ADVERTISE) != PackageManager.PERMISSION_GRANTED) {
-                    ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.BLUETOOTH_ADVERTISE), requestEnableBt)
-                    return
-                }
-            }
-
-            val advertiseSettings = AdvertiseSettings.Builder()
-                .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
-                .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
-                .setConnectable(false)
-                .build()
-
-            val advertiseData = AdvertiseData.Builder()
-                .setIncludeDeviceName(true)
-                .addServiceUuid(ParcelUuid(UUID.fromString("0000180F-0000-1000-8000-00805F9B34FB")))
-                .build()
-
-            advertiseCallback = object : AdvertiseCallback() {
-                override fun onStartSuccess(settingsInEffect: AdvertiseSettings) {
-                    super.onStartSuccess(settingsInEffect)
-                    println("Advertising started successfully")
-                }
-
-                override fun onStartFailure(errorCode: Int) {
-                    super.onStartFailure(errorCode)
-                    println("Advertising failed with error code: $errorCode")
-                }
-            }
-
-            advertiser.startAdvertising(advertiseSettings, advertiseData, advertiseCallback)
-        } catch (e: SecurityException) {
-            e.printStackTrace()
-        }
-    }
-
-    private fun stopAdvertising() {
-        try {
-            advertiser.stopAdvertising(advertiseCallback)
-        } catch (e: SecurityException) {
-            e.printStackTrace()
-        }
-    }
 
     private fun startScanning() {
         try {
@@ -187,25 +134,23 @@ class MainActivity : ComponentActivity() {
                 .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
                 .build()
 
-            val scanFilter = ScanFilter.Builder()
-                .setServiceUuid(ParcelUuid(UUID.fromString("0000180F-0000-1000-8000-00805F9B34FB")))
-                .build()
-
             scanCallback = object : ScanCallback() {
                 override fun onScanResult(callbackType: Int, result: ScanResult) {
                     super.onScanResult(callbackType, result)
                     runOnUiThread {
-                        webView.evaluateJavascript("javascript:handleDetectedPacket()", null)
+                        webView.evaluateJavascript("javascript:handleDetectedDevice('${result.device.address}')", null)
                     }
-                    println("Packet detected: ${result.device.name}")
+                    println("Device detected: ${result.device.address}")
                 }
 
                 override fun onBatchScanResults(results: List<ScanResult>) {
                     super.onBatchScanResults(results)
-                    runOnUiThread {
-                        webView.evaluateJavascript("javascript:handleDetectedPacket()", null)
+                    results.forEach { result ->
+                        runOnUiThread {
+                            webView.evaluateJavascript("javascript:handleDetectedDevice('${result.device.address}')", null)
+                        }
                     }
-                    println("Batch packets detected")
+                    println("Batch devices detected")
                 }
 
                 override fun onScanFailed(errorCode: Int) {
@@ -214,7 +159,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            scanner.startScan(listOf(scanFilter), scanSettings, scanCallback)
+            scanner.startScan(null, scanSettings, scanCallback)
         } catch (e: SecurityException) {
             e.printStackTrace()
         }
@@ -233,7 +178,6 @@ class MainActivity : ComponentActivity() {
         fun startBluetooth() {
             if (!isBluetoothActive) {
                 isBluetoothActive = true
-                startAdvertising()
                 startScanning()
             }
         }
@@ -242,7 +186,6 @@ class MainActivity : ComponentActivity() {
         fun stopBluetooth() {
             if (isBluetoothActive) {
                 isBluetoothActive = false
-                stopAdvertising()
                 stopScanning()
             }
         }
@@ -276,10 +219,6 @@ class MainActivity : ComponentActivity() {
                                     context,
                                     Manifest.permission.BLUETOOTH_SCAN
                                 ) == PackageManager.PERMISSION_GRANTED &&
-                                        ContextCompat.checkSelfPermission(
-                                            context,
-                                            Manifest.permission.BLUETOOTH_ADVERTISE
-                                        ) == PackageManager.PERMISSION_GRANTED &&
                                         ContextCompat.checkSelfPermission(
                                             context,
                                             Manifest.permission.BLUETOOTH_CONNECT
