@@ -262,50 +262,50 @@ class MainActivity : ComponentActivity() {
             color = MaterialTheme.colorScheme.background
         ) {
             Column {
-                Button(onClick = {
-                    if (ContextCompat.checkSelfPermission(
-                            context,
-                            Manifest.permission.BLUETOOTH
-                        ) == PackageManager.PERMISSION_GRANTED &&
-                        ContextCompat.checkSelfPermission(
-                            context,
-                            Manifest.permission.BLUETOOTH_ADMIN
-                        ) == PackageManager.PERMISSION_GRANTED &&
-                        ContextCompat.checkSelfPermission(
-                            context,
-                            Manifest.permission.ACCESS_FINE_LOCATION
-                        ) == PackageManager.PERMISSION_GRANTED &&
-                        (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || (
-                                ContextCompat.checkSelfPermission(
-                                    context,
-                                    Manifest.permission.BLUETOOTH_SCAN
-                                ) == PackageManager.PERMISSION_GRANTED &&
-                                        ContextCompat.checkSelfPermission(
-                                            context,
-                                            Manifest.permission.BLUETOOTH_ADVERTISE
-                                        ) == PackageManager.PERMISSION_GRANTED &&
-                                        ContextCompat.checkSelfPermission(
-                                            context,
-                                            Manifest.permission.BLUETOOTH_CONNECT
-                                        ) == PackageManager.PERMISSION_GRANTED
-                                ))
-                    ) {
-                        if (isBluetoothActive.value) {
-                            webView.evaluateJavascript("javascript:stopBluetooth()", null)
-                        } else {
-                            webView.evaluateJavascript("javascript:startBluetooth()", null)
-                        }
-                        isBluetoothActive.value = !isBluetoothActive.value
-                    } else {
-                        ActivityCompat.requestPermissions(
-                            context as Activity,
-                            permissions,
-                            requestEnableBt
-                        )
-                    }
-                }) {
-                    Text(text = if (isBluetoothActive.value) "블루투스 통신 끝" else "블루투스 통신 시작")
-                }
+//                Button(onClick = {
+//                    if (ContextCompat.checkSelfPermission(
+//                            context,
+//                            Manifest.permission.BLUETOOTH
+//                        ) == PackageManager.PERMISSION_GRANTED &&
+//                        ContextCompat.checkSelfPermission(
+//                            context,
+//                            Manifest.permission.BLUETOOTH_ADMIN
+//                        ) == PackageManager.PERMISSION_GRANTED &&
+//                        ContextCompat.checkSelfPermission(
+//                            context,
+//                            Manifest.permission.ACCESS_FINE_LOCATION
+//                        ) == PackageManager.PERMISSION_GRANTED &&
+//                        (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || (
+//                                ContextCompat.checkSelfPermission(
+//                                    context,
+//                                    Manifest.permission.BLUETOOTH_SCAN
+//                                ) == PackageManager.PERMISSION_GRANTED &&
+//                                        ContextCompat.checkSelfPermission(
+//                                            context,
+//                                            Manifest.permission.BLUETOOTH_ADVERTISE
+//                                        ) == PackageManager.PERMISSION_GRANTED &&
+//                                        ContextCompat.checkSelfPermission(
+//                                            context,
+//                                            Manifest.permission.BLUETOOTH_CONNECT
+//                                        ) == PackageManager.PERMISSION_GRANTED
+//                                ))
+//                    ) {
+//                        if (isBluetoothActive.value) {
+//                            webView.evaluateJavascript("javascript:stopBluetooth()", null)
+//                        } else {
+//                            webView.evaluateJavascript("javascript:startBluetooth()", null)
+//                        }
+//                        isBluetoothActive.value = !isBluetoothActive.value
+//                    } else {
+//                        ActivityCompat.requestPermissions(
+//                            context as Activity,
+//                            permissions,
+//                            requestEnableBt
+//                        )
+//                    }
+//                }) {
+//                    Text(text = if (isBluetoothActive.value) "블루투스 통신 끝" else "블루투스 통신 시작")
+//                }
                 AndroidView(factory = { context ->
                     WebView(context).apply {
                         settings.javaScriptEnabled = true
