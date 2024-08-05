@@ -8,7 +8,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.*
+import android.util.Log
 import android.webkit.JavascriptInterface
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -261,62 +264,39 @@ class MainActivity : ComponentActivity() {
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
-            Column {
-//                Button(onClick = {
-//                    if (ContextCompat.checkSelfPermission(
-//                            context,
-//                            Manifest.permission.BLUETOOTH
-//                        ) == PackageManager.PERMISSION_GRANTED &&
-//                        ContextCompat.checkSelfPermission(
-//                            context,
-//                            Manifest.permission.BLUETOOTH_ADMIN
-//                        ) == PackageManager.PERMISSION_GRANTED &&
-//                        ContextCompat.checkSelfPermission(
-//                            context,
-//                            Manifest.permission.ACCESS_FINE_LOCATION
-//                        ) == PackageManager.PERMISSION_GRANTED &&
-//                        (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || (
-//                                ContextCompat.checkSelfPermission(
-//                                    context,
-//                                    Manifest.permission.BLUETOOTH_SCAN
-//                                ) == PackageManager.PERMISSION_GRANTED &&
-//                                        ContextCompat.checkSelfPermission(
-//                                            context,
-//                                            Manifest.permission.BLUETOOTH_ADVERTISE
-//                                        ) == PackageManager.PERMISSION_GRANTED &&
-//                                        ContextCompat.checkSelfPermission(
-//                                            context,
-//                                            Manifest.permission.BLUETOOTH_CONNECT
-//                                        ) == PackageManager.PERMISSION_GRANTED
-//                                ))
-//                    ) {
-//                        if (isBluetoothActive.value) {
-//                            webView.evaluateJavascript("javascript:stopBluetooth()", null)
-//                        } else {
-//                            webView.evaluateJavascript("javascript:startBluetooth()", null)
-//                        }
-//                        isBluetoothActive.value = !isBluetoothActive.value
-//                    } else {
-//                        ActivityCompat.requestPermissions(
-//                            context as Activity,
-//                            permissions,
-//                            requestEnableBt
-//                        )
-//                    }
-//                }) {
-//                    Text(text = if (isBluetoothActive.value) "블루투스 통신 끝" else "블루투스 통신 시작")
-//                }
+            Column(modifier = Modifier.fillMaxSize()) {
                 AndroidView(factory = { context ->
                     WebView(context).apply {
                         settings.javaScriptEnabled = true
                         settings.cacheMode = WebSettings.LOAD_NO_CACHE
-                        webViewClient = WebViewClient()
-                        loadUrl("https://bletest-repo.vercel.app/")
+                        settings.domStorageEnabled = true
+                        settings.databaseEnabled = true
+                        webViewClient = object : WebViewClient() {
+                            override fun onPageFinished(view: WebView?, url: String?) {
+                                // 페이지 로드가 완료되었을 때 호출
+                                super.onPageFinished(view, url)
+                                // 로그를 통해 로드된 URL 확인
+                                Log.d("WebView", "Page loaded: $url")
+                            }
+
+                            override fun onReceivedError(
+                                view: WebView?,
+                                request: WebResourceRequest?,
+                                error: WebResourceError?
+                            ) {
+                                // 오류가 발생했을 때 호출
+                                super.onReceivedError(view, request, error)
+                                Log.e("WebView", "Error: ${error?.description}")
+                            }
+                        }
+                        loadUrl("https://yield-me.vercel.app/")
                         addJavascriptInterface(BluetoothInterface(), "BluetoothInterface")
-                        webView = this
                     }
-                })
+                }, modifier = Modifier.fillMaxSize())
             }
         }
     }
+
+
+
 }
