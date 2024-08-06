@@ -52,13 +52,19 @@ class MainActivity : ComponentActivity() {
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.BLUETOOTH_SCAN,
             Manifest.permission.BLUETOOTH_ADVERTISE,
-            Manifest.permission.BLUETOOTH_CONNECT
+            Manifest.permission.BLUETOOTH_CONNECT,
+            Manifest.permission.CAMERA, // 카메라 권한 추가
+            Manifest.permission.WRITE_EXTERNAL_STORAGE, // 추가 권한
+            Manifest.permission.READ_EXTERNAL_STORAGE // 추가 권한
         )
     } else {
         arrayOf(
             Manifest.permission.BLUETOOTH,
             Manifest.permission.BLUETOOTH_ADMIN,
-            Manifest.permission.ACCESS_FINE_LOCATION
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.CAMERA, // 카메라 권한 추가
+            Manifest.permission.WRITE_EXTERNAL_STORAGE, // 추가 권한
+            Manifest.permission.READ_EXTERNAL_STORAGE // 추가 권한
         )
     }
 
@@ -76,27 +82,20 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 카메라 및 QR 코드 스캐너 권한 요청
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED ||
-            ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED ||
-            ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-
-            ActivityCompat.requestPermissions(this, arrayOf(
-                Manifest.permission.CAMERA,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                Manifest.permission.READ_EXTERNAL_STORAGE), 1)
-        }
+        // 권한 요청
+        ActivityCompat.requestPermissions(this, permissions, 1)
 
         setContent {
             YelloTheme {
                 MainScreen()
             }
         }
+    }
+
 
 //        // Adjust pan
 //        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN)
 
-    }
 
 
     private fun setupBluetooth() {
