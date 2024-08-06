@@ -93,8 +93,8 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Adjust pan
-        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN)
+//        // Adjust pan
+//        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN)
 
     }
 
