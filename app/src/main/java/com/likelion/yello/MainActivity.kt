@@ -10,11 +10,14 @@ import android.content.pm.PackageManager
 import android.os.*
 import android.util.Log
 import android.webkit.JavascriptInterface
+import android.webkit.PermissionRequest
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -71,7 +74,17 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setupBluetooth()
+
+        // 카메라 및 QR 코드 스캐너 권한 요청
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(this, arrayOf(
+                Manifest.permission.CAMERA,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                Manifest.permission.READ_EXTERNAL_STORAGE), 1)
+        }
 
         setContent {
             YelloTheme {
@@ -79,6 +92,7 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
 
     private fun setupBluetooth() {
         val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
@@ -103,23 +117,18 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<String>,
-        grantResults: IntArray
-    ) {
+    // 권한 요청 결과 처리
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        when (requestCode) {
-            requestEnableBt -> {
-                if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
-                    setupBluetooth()
-                } else {
-                    println("필요한 권한이 부여되지 않았습니다.")
+        if (requestCode == 1) {
+            for (i in permissions.indices) {
+                if (grantResults[i] == PackageManager.PERMISSION_DENIED) {
+                    Toast.makeText(this, "${permissions[i]} 권한이 거부되었습니다.", Toast.LENGTH_SHORT).show()
                 }
-                return
             }
         }
     }
+
 
     private val requestBluetooth =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -258,7 +267,6 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun MainScreen() {
         val context = LocalContext.current
-        val isBluetoothActive = remember { mutableStateOf(false) }
 
         Surface(
             modifier = Modifier.fillMaxSize(),
@@ -273,9 +281,7 @@ class MainActivity : ComponentActivity() {
                         settings.databaseEnabled = true
                         webViewClient = object : WebViewClient() {
                             override fun onPageFinished(view: WebView?, url: String?) {
-                                // 페이지 로드가 완료되었을 때 호출
                                 super.onPageFinished(view, url)
-                                // 로그를 통해 로드된 URL 확인
                                 Log.d("WebView", "Page loaded: $url")
                             }
 
@@ -284,9 +290,13 @@ class MainActivity : ComponentActivity() {
                                 request: WebResourceRequest?,
                                 error: WebResourceError?
                             ) {
-                                // 오류가 발생했을 때 호출
                                 super.onReceivedError(view, request, error)
                                 Log.e("WebView", "Error: ${error?.description}")
+                            }
+                        }
+                        webChromeClient = object : WebChromeClient() {
+                            override fun onPermissionRequest(request: PermissionRequest) {
+                                request.grant(request.resources)
                             }
                         }
                         loadUrl("https://yield-me.vercel.app/")
